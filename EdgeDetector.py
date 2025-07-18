@@ -7,42 +7,38 @@ from PIL import Image, ImageTk
 def process_image(filepath, thickness=2):
     image = cv2.imread(filepath, cv2.IMREAD_UNCHANGED)
 
-    #alfa kanalı (seffaflık bilgisi) varsa (RGBA bilgisi var) kanaldan bir maske cıkarılır ve seffaf olmayan bolgeler 255 olur
-    if image.shape[2] == 4: #görselin rgba olup olmadığının kontrolü
+    if image.shape[2] == 4: 
         alpha = image[:, :, 3]
-        binary = cv2.threshold(alpha, 1, 255, cv2.THRESH_BINARY)[1] #gorunur piksellere 255(beyaz) atanır
-    #alfa kanalı yoksa (RGBA bilgisi yok) gorsel grıye cevrılır,
-    # 240 uzeri pikseller terslenip kenarlar bulunur (SIYAH BG BEYAZ FG)
+        binary = cv2.threshold(alpha, 1, 255, cv2.THRESH_BINARY)[1] 
+    
     else:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         _, binary = cv2.threshold(gray, 240, 255, cv2.THRESH_BINARY_INV)
 
-    #kenardaki bosluklar kapatılarak duzgun kontur elde edilir
+
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
 
-    #en dıştaki çizgiler bulunur (dıs kontur)
+    
     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    #bos seffaf rgba oluturulur
+    
     h, w = binary.shape
     result = np.zeros((h, w, 4), dtype=np.uint8)
 
 
-    #kucuk gurultuler filtrelenir
+ 
     min_area = 5000
     epsilon_ratio = 0.002
 
     filtered = [cnt for cnt in contours if cv2.contourArea(cnt) > min_area]
 
-    #filtrelenmiş konturlardan en büyük olanı seçilip düzgün hale getirilir ve thicknessa göre opak çizilir
     if filtered:
         largest = max(filtered, key=cv2.contourArea)
         epsilon = epsilon_ratio * cv2.arcLength(largest, True)
         approx = cv2.approxPolyDP(largest, epsilon, True)
         cv2.drawContours(result, [largest], -1, (0, 0, 0, 255), thickness=thickness)
 
-    #yeni dosya kaydedilir
     out_path = filepath.replace(".png", "_R.png")
     cv2.imwrite(out_path, result)
     return out_path
@@ -100,7 +96,6 @@ root.title("Edge Detector App")
 root.geometry("850x600")
 root.configure(bg="#dcdcdc")
 
-# Üst: Dosya seç + kalınlık + buton
 top_frame = tk.Frame(root, bg="#dcdcdc")
 top_frame.pack(pady=10)
 
